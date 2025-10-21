@@ -1,0 +1,82 @@
+post /phones/{phone}/unsubscribe
+Implementation Notes
+Set a Phone's status on a Program to unsubscribed. If a Phone's status is unsubscribed then you are unable to send messages to it. The source and performed-at are both optional. The performed-at must be a valid ISO8601 timestamp in the past.
+
+The following map demonstrates a Subscription object's transitions into the unsubscribed state.
+
+  pending : unsubscribed
+  subscribed : unsubscribed
+  unsubscribed : unsubscribed
+  confirmed : unsubscribed
+  expired : unsubscribed
+Response Class (Status 200)
+Subscription successfully changed.
+
+ModelExample Value
+{
+  "id": 123,
+  "status": "confirmed",
+  "phone-id": 234,
+  "program-id": 345,
+  "source": "external-system-xyz",
+  "performed-at": "2017-03-24T15:19:23.195Z",
+  "deliver-time-of-day-start": "09:30:00",
+  "deliver-time-of-day-end": "19:45:00",
+  "brand": "xxx",
+  "created-at": "2017-03-24T15:19:23.195Z",
+  "updated-at": "2017-03-24T15:19:23.195Z"
+}
+
+
+Response Content Type 
+application/json
+Parameters
+Parameter	Value	Description	Parameter Type	Data Type
+phone	
+(required)
+ID or Number of Phone to unsubscribe
+
+path	string
+subscription	
+(required)
+
+Parameter content type: 
+application/json
+Subscription to terminate(Unsubscribe)
+
+body	
+ModelExample Value
+{
+  "program-id": 345,
+  "source": "external-system-xyz",
+  "deliver-time-of-day-start": "09:30:00",
+  "deliver-time-of-day-end": "19:45:00",
+  "brand": "uhg",
+  "performed-at": "2017-03-24T15:19:23.195Z"
+}
+Response Messages
+HTTP Status Code	Reason	Response Model	Headers
+422	
+validation error
+
+ModelExample Value
+{
+  "message": "Could not create object",
+  "errors": {
+    "attribute1": [
+      "error message 1",
+      "error message 2"
+    ],
+    "attribute2": [
+      "error message 3"
+    ]
+  }
+}
+500	
+internal server error
+
+ModelExample Value
+{
+  "message": "An error that we didn't expect. We will look in to it!",
+  "description": "ExampleError: example error description"
+}
