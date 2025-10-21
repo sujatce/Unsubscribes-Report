@@ -1,0 +1,177 @@
+/subscriptions
+Implementation Notes
+Return all Subscriptions.
+
+Response Class (Status 200)
+Successfully returned list of program IDs
+
+ModelExample Value
+{
+  "subscription": [
+    {
+      "id": 123,
+      "status": "confirmed",
+      "phone-id": 234,
+      "program-id": 345,
+      "source": "external-system-xyz",
+      "performed-at": "2017-03-24T15:19:23.195Z",
+      "deliver-time-of-day-start": "09:30:00",
+      "deliver-time-of-day-end": "19:45:00",
+      "brand": "XXX",
+      "created-at": "2017-03-24T15:19:23.195Z",
+      "updated-at": "2017-03-24T15:19:23.195Z"
+    }
+  ],
+  "metadata": {
+    "pagination": {
+      "links": {
+        "first": "/v1/resource?page=1&per-page=5&sort-by=created-at&sort-order=desc",
+        "last": "/v1/resource?page=4&per-page=5&sort-by=created-at&sort-order=desc",
+        "next": "/v1/resource?page=3&per-page=5&sort-by=created-at&sort-order=desc",
+        "prev": "/v1/resource?page=1&per-page=5&sort-by=created-at&sort-order=desc",
+        "self": "/v1/resource?page=2&per-page=5&sort-by=created-at&sort-order=desc"
+      },
+      "sort-by": "created-at",
+      "sort-order": "desc",
+      "per-page": "5",
+      "total-pages": 4,
+      "total-records": 16
+    }
+  }
+}
+
+
+Response Content Type 
+application/json
+Parameters
+Parameter	Value	Description	Parameter Type	Data Type
+program-id	
+Provide multiple values in new lines.
+Comma separated list of Program ids to filter by
+
+query	Array[long]
+phone-id	
+Provide multiple values in new lines.
+Comma separated list of Phone ids to filter by
+
+query	Array[long]
+phone-number	
+Provide multiple values in new lines.
+Comma separated list of Phone numbers to filter by
+
+query	Array[string]
+source	
+Provide multiple values in new lines.
+Comma separated list of sources to filter by
+
+query	Array[string]
+status	pendingsubscribedconfirmedunsubscribedexpired	
+Filter by status using a menu list. Shift or Ctrl click to select multiple statuses.
+
+query	Array[string]
+created-at	
+created-at ISO8601 datetime to filter by
+
+query	date-time
+created-at-lt	
+created-at less than ISO8601 datetime to filter by
+
+query	date-time
+created-at-lte	
+created-at less than or equal to ISO8601 datetime to filter by
+
+query	date-time
+created-at-gt	
+created-at greater than ISO8601 datetime to filter by
+
+query	date-time
+created-at-gte	
+created-at greater than or equal to ISO8601 datetime to filter by
+
+query	date-time
+updated-at	
+updated-at ISO8601 datetime to filter by
+
+query	date-time
+updated-at-lt	
+updated-at less than ISO8601 datetime to filter by
+
+query	date-time
+updated-at-lte	
+updated-at less than or equal to ISO8601 datetime to filter by
+
+query	date-time
+updated-at-gt	
+updated-at greater than ISO8601 datetime to filter by
+
+query	date-time
+updated-at-gte	
+updated-at greater than or equal to ISO8601 datetime to filter by
+
+query	date-time
+performed-at	
+performed-at ISO8601 datetime to filter by
+
+query	date-time
+performed-at-lt	
+performed-at less than ISO8601 datetime to filter by
+
+query	date-time
+performed-at-lte	
+performed-at less than or equal to ISO8601 datetime to filter by
+
+query	date-time
+performed-at-gt	
+performed-at greater than ISO8601 datetime to filter by
+
+query	date-time
+performed-at-gte	
+performed-at greater than or equal to ISO8601 datetime to filter by
+
+query	date-time
+page	
+1
+Page Number of the Result, that is to be displayed
+
+query	long
+per-page	
+250
+Number of records to display per page. Valid range [1, 1000]
+
+query	long
+sort-by	
+created-at (default)
+Date fields to sort the results by. Valid values are ['created-at', 'updated-at', 'performed-at']
+
+query	string
+sort-order	
+desc (default)
+Sort Order for the results. Valid values are ['asc', 'desc']
+
+query	string
+Response Messages
+HTTP Status Code	Reason	Response Model	Headers
+422	
+validation error
+
+ModelExample Value
+{
+  "message": "Could not create object",
+  "errors": {
+    "attribute1": [
+      "error message 1",
+      "error message 2"
+    ],
+    "attribute2": [
+      "error message 3"
+    ]
+  }
+}
+500	
+internal server error
+
+ModelExample Value
+{
+  "message": "An error that we didn't expect. We will look in to it!",
+  "description": "ExampleError: example error description"
+}
