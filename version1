@@ -1,0 +1,227 @@
+import csv
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from urllib.parse import quote
+from datetime import datetime, timedelta, timezone
+import pandas as pd
+import time
+import logging
+import os
+import sys
+import re
+import math
+
+# ====================================================
+# 🔹 SETUP LOGGING
+# ====================================================
+
+logs_dir = "logs"
+os.makedirs(logs_dir, exist_ok=True)
+log_filename = f"Unsubscribed_Run_{datetime.now().strftime('%m%d%Y_%H%M%S')}.log"
+log_path = os.path.join(logs_dir, log_filename)
+
+logging.basicConfig(
+    filename=log_path,
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S")
+console.setFormatter(formatter)
+logging.getLogger().addHandler(console)
+
+# ====================================================
+# 🔹 REQUEST SESSION WITH RETRY
+# ====================================================
+
+session = requests.Session()
+retry_strategy = Retry(
+    total=5,
+    connect=5,
+    read=5,
+    backoff_factor=2,
+    status_forcelist=[500, 502, 503, 504],
+    allowed_methods=["GET", "POST"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
+
+# ====================================================
+# 🔹 TOKEN SERVICE CLASS
+# ====================================================
+
+class SMSTokenService:
+    def __init__(self, auth_url, client_id, client_secret, expire_in_seconds=1770):
+        self.auth_url = auth_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.expire_in = timedelta(seconds=expire_in_seconds)
+        self.token = None
+        self.expire_at = datetime.now(timezone.utc)
+
+    def token_valid(self):
+        return self.token and datetime.now(timezone.utc) < self.expire_at
+
+    def renew_token(self):
+        if not self.token_valid():
+            logging.info("[AUTH] Requesting new access token...")
+            payload = {
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret
+            }
+            try:
+                response = session.post(self.auth_url, data=payload, timeout=20)
+                logging.info(f"[AUTH] Response Status: {response.status_code}")
+                if response.status_code == 200:
+                    data = response.json()
+                    self.token = data["access_token"]
+                    self.expire_at = datetime.now(timezone.utc) + self.expire_in
+                    logging.info("[AUTH] ✅ Access token received.")
+                else:
+                    raise Exception(f"[AUTH ERROR] {response.status_code}: {response.text}")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"[AUTH ERROR] Request failed: {e}")
+
+    def get_headers(self):
+        self.renew_token()
+        return {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/json"
+        }
+
+# ====================================================
+# 🔹 UNSUBSCRIBE CHECKER CLASS
+# ====================================================
+
+class SMSUnsubscribeChecker:
+    def __init__(self, api_base_url, token_service, program_id, output_csv):
+        self.api_base_url = api_base_url
+        self.token_service = token_service
+        self.program_id = program_id
+        self.output_csv = output_csv
+
+    def normalize_number(self, phone_number: str) -> str:
+        phone_number = str(phone_number).strip()
+        if phone_number.endswith(".0"):
+            phone_number = phone_number[:-2]
+        digits = re.sub(r"\D", "", phone_number)
+        if len(digits) == 10:
+            return f"+1{digits}"
+        if len(digits) == 11 and digits.startswith("1"):
+            return f"+{digits}"
+        return phone_number
+
+    def check_unsubscribe_status(self, phone_number: str) -> bool:
+        """Check if the given phone number is unsubscribed."""
+        normalized = self.normalize_number(phone_number)
+        url = f"{self.api_base_url}/phones/{quote(normalized)}/subscriptions?program-id={self.program_id}"
+        logging.info(f"[CHECK] 🔍 Checking unsubscribe status for {normalized}")
+
+        try:
+            response = session.get(url, headers=self.token_service.get_headers(), timeout=20)
+            logging.info(f"[CHECK] Status Code: {response.status_code}")
+
+            if response.status_code == 401:
+                logging.info("[AUTH] Token expired — retrying with new token...")
+                self.token_service.renew_token()
+                return self.check_unsubscribe_status(phone_number)
+
+            if response.status_code == 404:
+                logging.info(f"[CHECK] ❌ No record found for {normalized}")
+                return False
+
+            if response.status_code != 200:
+                logging.warning(f"[CHECK] ⚠️ Unexpected response: {response.status_code} - {response.text}")
+                return False
+
+            data = response.json()
+            subs = data.get("subscriptions") or data.get("data") or []
+
+            for s in subs:
+                if str(s.get("program-id")) == str(self.program_id) and s.get("status") == "unsubscribed":
+                    logging.info(f"[CHECK] 🚫 Unsubscribed: {normalized}")
+                    return True
+
+            logging.info(f"[CHECK] ✅ Still subscribed: {normalized}")
+            return False
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"[CHECK ERROR] {str(e)}")
+            return False
+
+    def process_csv(self, input_csv: str):
+        """Iterate through phone list and check unsubscribe status."""
+        df = pd.read_csv(input_csv, encoding='utf-8-sig', dtype={"MEMBER_PHONE": str})
+        if "MEMBER_PHONE" not in df.columns:
+            raise ValueError("Input CSV must have a column named 'MEMBER_PHONE'")
+
+        total_records = len(df)
+        unsubscribed_records = []
+
+        with open(self.output_csv, 'w', newline='') as outfile:
+            writer = csv.DictWriter(outfile, fieldnames=["MEMBER_PHONE", "STATUS"])
+            writer.writeheader()
+
+            for idx, row in df.iterrows():
+                current_num = idx + 1
+                phone = str(row["MEMBER_PHONE"]).strip()
+                if not phone:
+                    continue
+
+                percent = (current_num / total_records) * 100
+                bar_length = 40
+                filled_length = int(bar_length * current_num // total_records)
+                bar = '█' * filled_length + '-' * (bar_length - filled_length)
+                sys.stdout.write(f"\rProgress: |{bar}| {percent:6.2f}% ({current_num}/{total_records})")
+                sys.stdout.flush()
+
+                is_unsubscribed = self.check_unsubscribe_status(phone)
+
+                if is_unsubscribed:
+                    unsubscribed_records.append({"MEMBER_PHONE": phone, "STATUS": "unsubscribed"})
+                    writer.writerow({"MEMBER_PHONE": phone, "STATUS": "unsubscribed"})
+
+                logging.info("-----------------------------------------------------")
+
+        sys.stdout.write("\n")
+        logging.info(f"✅ Unsubscribe report generated successfully with {len(unsubscribed_records)} records.")
+
+# ====================================================
+# 🔹 MAIN
+# ====================================================
+
+if __name__ == "__main__":
+    AUTH_URL = ""  # <-- OAuth endpoint
+    CLIENT_ID = ""
+    CLIENT_SECRET = ""
+    API_BASE_URL = ""  # <-- API base
+    PROGRAM_ID = ""  # <-- SMS Manager Program ID
+    INPUT_CSV = "MEMBER_PHONE_LIST.csv"
+    OUTPUT_CSV = f"Unsubscribed_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    logging.info("🚀 Starting Unsubscribe Report Generator...\n")
+
+    token_service = SMSTokenService(
+        auth_url=AUTH_URL,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET
+    )
+
+    checker = SMSUnsubscribeChecker(
+        api_base_url=API_BASE_URL,
+        token_service=token_service,
+        program_id=PROGRAM_ID,
+        output_csv=OUTPUT_CSV
+    )
+
+    checker.process_csv(INPUT_CSV)
+
+    logging.info(f"📄 Output saved to: {OUTPUT_CSV}")
+
+TELL ME THE LOGIC FOR THIS ?
