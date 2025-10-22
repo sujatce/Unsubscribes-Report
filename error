@@ -1,10 +1,25 @@
-2025-10-22 08:54:15 [INFO] 🚀 Starting Bulk Unsubscribe Report Generator...                                                                    
+2025-10-22 11:56:06 [INFO] 🚀 Starting Bulk Unsubscribe Report Generator...
 
-2025-10-22 08:54:15 [INFO] [FETCH] 📄 Fetching page 1...
-2025-10-22 08:54:15 [INFO] [AUTH] Requesting new access token...
-2025-10-22 08:54:15 [INFO] [AUTH] Response Status: 200
-2025-10-22 08:54:15 [INFO] [AUTH] ✅ Access token received.
-2025-10-22 08:54:16 [INFO] [FETCH] Status Code: 200
-2025-10-22 08:54:16 [INFO] [FETCH] ✅ Total unsubscribed records retrieved: 18
-2025-10-22 08:54:16 [INFO] ✅ Unsubscribe report generated with 0 records.
-2025-10-22 08:54:16 [INFO] 📄 Output saved to: Unsubscribed_Report_20251022_085415.csv
+2025-10-22 11:56:06 [INFO] [FETCH] 📄 Fetching page 1...
+2025-10-22 11:56:06 [INFO] [AUTH] Requesting new access token...
+2025-10-22 11:56:07 [INFO] [AUTH] Response Status: 200
+2025-10-22 11:56:07 [INFO] [AUTH] ✅ Access token received.
+2025-10-22 11:56:07 [INFO] [FETCH] Status Code: 200
+2025-10-22 11:56:07 [INFO] [DEBUG] Sample unsubscribed entry:
+{
+  "id": 153265984,
+  "status": "unsubscribed",
+  "source": "Inbound Message",
+  "phone-id": 32699759,
+  "program-id": 798365,
+  "performed-at": "2025-10-17T01:52:03Z",
+  "created-at": "2025-10-16T20:59:12Z",
+  "updated-at": "2025-10-17T01:52:03Z",
+  "metadata": {
+    "gmpi_id": "702439404",
+    "member_first_name": "CLAUDE",
+    "member_last_name": "GRIMES"
+  }
+}
+2025-10-22 11:56:07 [INFO] [FETCH] ✅ Total unsubscribed records retrieved: 0
+2025-10-22 11:56:07 [INFO] No unsubscribed records found.
