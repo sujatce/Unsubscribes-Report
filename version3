@@ -1,0 +1,221 @@
+import os
+import csv
+import time
+import json
+import logging
+import pandas as pd
+import requests
+from datetime import datetime, timedelta, timezone
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# ====================================================
+# 🔹 SETUP LOGGING
+# ====================================================
+
+logs_dir = "logs"
+os.makedirs(logs_dir, exist_ok=True)
+log_filename = f"BulkUnsubscribed_Run_{datetime.now().strftime('%m%d%Y_%H%M%S')}.log"
+log_path = os.path.join(logs_dir, log_filename)
+
+logging.basicConfig(
+    filename=log_path,
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S")
+console.setFormatter(formatter)
+logging.getLogger().addHandler(console)
+
+# ====================================================
+# 🔹 REQUEST SESSION WITH RETRY
+# ====================================================
+
+session = requests.Session()
+retry_strategy = Retry(
+    total=5,
+    connect=5,
+    read=5,
+    backoff_factor=2,
+    status_forcelist=[500, 502, 503, 504],
+    allowed_methods=["GET", "POST"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
+
+# ====================================================
+# 🔹 TOKEN SERVICE CLASS
+# ====================================================
+
+class SMSTokenService:
+    def __init__(self, auth_url, client_id, client_secret, expire_in_seconds=1770):
+        self.auth_url = auth_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.expire_in = timedelta(seconds=expire_in_seconds)
+        self.token = None
+        self.expire_at = datetime.now(timezone.utc)
+
+    def token_valid(self):
+        return self.token and datetime.now(timezone.utc) < self.expire_at
+
+    def renew_token(self):
+        if not self.token_valid():
+            logging.info("[AUTH] Requesting new access token...")
+            payload = {
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret
+            }
+            try:
+                response = session.post(self.auth_url, data=payload, timeout=20)
+                logging.info(f"[AUTH] Response Status: {response.status_code}")
+                if response.status_code == 200:
+                    data = response.json()
+                    self.token = data["access_token"]
+                    self.expire_at = datetime.now(timezone.utc) + self.expire_in
+                    logging.info("[AUTH] ✅ Access token received.")
+                else:
+                    raise Exception(f"[AUTH ERROR] {response.status_code}: {response.text}")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"[AUTH ERROR] Request failed: {e}")
+
+    def get_headers(self):
+        self.renew_token()
+        return {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/json"
+        }
+
+# ====================================================
+# 🔹 BULK UNSUBSCRIBE FETCHER CLASS
+# ====================================================
+
+class BulkUnsubscribeFetcher:
+    def __init__(self, api_base_url, program_id, token_service):
+        self.api_base_url = api_base_url
+        self.program_id = program_id
+        self.token_service = token_service
+
+    def fetch_all_unsubscribed(self):
+        """Fetch all unsubscribed phone numbers for the given program ID."""
+        unsubscribed = []
+        page = 1
+        per_page = 1000
+
+        while True:
+            url = (
+                f"{self.api_base_url}/subscriptions?"
+                f"program-id={self.program_id}&status=unsubscribed&page={page}&per-page={per_page}"
+            )
+            logging.info(f"[FETCH] 📄 Fetching page {page}...")
+            try:
+                response = session.get(url, headers=self.token_service.get_headers(), timeout=30)
+                logging.info(f"[FETCH] Status Code: {response.status_code}")
+
+                if response.status_code == 401:
+                    logging.info("[AUTH] Token expired — retrying...")
+                    self.token_service.renew_token()
+                    continue
+
+                if response.status_code != 200:
+                    logging.warning(f"[FETCH] ⚠️ Unexpected response: {response.status_code}")
+                    break
+
+                data = response.json()
+
+                # Debugging: show one sample entry
+                subs = data.get("subscriptions") or data.get("subscription") or data.get("data") or []
+                if not subs:
+                    logging.info("[FETCH] ✅ No more records found.")
+                    break
+
+                logging.info(f"[DEBUG] Sample unsubscribed entry: {json.dumps(subs[0], indent=2)[:500]}")
+
+                for s in subs:
+                    status = s.get("status")
+                    if status != "unsubscribed":
+                        continue
+
+                    phone_data = s.get("phone") or {}
+                    phone_number = phone_data.get("phone-number") or s.get("phone-number")
+                    phone_id = phone_data.get("id") or s.get("phone-id")
+                    metadata = phone_data.get("metadata") or {}
+                    gmpi_id = metadata.get("GMPI_ID") or metadata.get("gmpi_id") or ""
+
+                    if phone_number:
+                        unsubscribed.append({
+                            "GMPI_ID": gmpi_id,
+                            "MEMBER_PHONE": phone_number.strip(),
+                            "STATUS": status,
+                            "PHONE_ID": phone_id
+                        })
+
+                # Pagination check
+                metadata = data.get("metadata", {}).get("pagination", {})
+                total_pages = int(metadata.get("total-pages", page))
+                if page >= total_pages:
+                    break
+
+                page += 1
+                time.sleep(0.5)  # Avoid hammering API
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"[FETCH ERROR] {str(e)}")
+                break
+
+        logging.info(f"[FETCH] ✅ Total unsubscribed records retrieved: {len(unsubscribed)}")
+        return unsubscribed
+
+# ====================================================
+# 🔹 MAIN
+# ====================================================
+
+if __name__ == "__main__":
+    AUTH_URL = ""  # <-- OAuth endpoint
+    CLIENT_ID = ""
+    CLIENT_SECRET = ""
+    API_BASE_URL = ""  # <-- API base (e.g., https://api.smsmanager.com/v1)
+    PROGRAM_ID = ""  # <-- SMS Manager Program ID
+    INPUT_CSV = "MEMBER_PHONE_LIST.csv"
+    OUTPUT_CSV = f"Unsubscribed_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    logging.info("🚀 Starting Bulk Unsubscribe Report Generator...\n")
+
+    token_service = SMSTokenService(
+        auth_url=AUTH_URL,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET
+    )
+
+    fetcher = BulkUnsubscribeFetcher(
+        api_base_url=API_BASE_URL,
+        program_id=PROGRAM_ID,
+        token_service=token_service
+    )
+
+    # Step 1: Get all unsubscribed records
+    unsubscribed_records = fetcher.fetch_all_unsubscribed()
+
+    if not unsubscribed_records:
+        logging.info("No unsubscribed records found.")
+        sys.exit(0)
+
+    # Step 2: Load your input phone list
+    df_input = pd.read_csv(INPUT_CSV, encoding='utf-8-sig', dtype=str)
+    if "MEMBER_PHONE" not in df_input.columns:
+        raise ValueError("Input CSV must have a column named 'MEMBER_PHONE'")
+
+    # Step 3: Match only those phones from the input list
+    unsubscribed_df = pd.DataFrame(unsubscribed_records)
+    merged_df = pd.merge(df_input, unsubscribed_df, on="MEMBER_PHONE", how="inner")
+
+    # Step 4: Save results
+    merged_df.to_csv(OUTPUT_CSV, index=False)
+    logging.info(f"✅ Unsubscribe report generated with {len(merged_df)} records.")
+    logging.info(f"📄 Output saved to: {OUTPUT_CSV}")
