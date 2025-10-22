@@ -1,5 +1,6 @@
 import os
 import csv
+import sys
 import time
 import json
 import logging
@@ -103,7 +104,7 @@ class BulkUnsubscribeFetcher:
         self.token_service = token_service
 
     def fetch_all_unsubscribed(self):
-        """Fetch all unsubscribed phone numbers for the given program ID."""
+        """Fetch all unsubscribed phone numbers and phone IDs for the given program ID."""
         unsubscribed = []
         page = 1
         per_page = 1000
@@ -128,32 +129,27 @@ class BulkUnsubscribeFetcher:
                     break
 
                 data = response.json()
+                subs = data.get("subscription") or []
 
-                # Debugging: show one sample entry
-                subs = data.get("subscriptions") or data.get("subscription") or data.get("data") or []
+                # Debugging: log first record
+                if page == 1 and subs:
+                    logging.info(f"[DEBUG] Sample unsubscribed entry:\n{json.dumps(subs[0], indent=2)}")
+
                 if not subs:
                     logging.info("[FETCH] ✅ No more records found.")
                     break
 
-                logging.info(f"[DEBUG] Sample unsubscribed entry: {json.dumps(subs[0], indent=2)[:500]}")
-
                 for s in subs:
-                    status = s.get("status")
-                    if status != "unsubscribed":
-                        continue
-
                     phone_data = s.get("phone") or {}
                     phone_number = phone_data.get("phone-number") or s.get("phone-number")
-                    phone_id = phone_data.get("id") or s.get("phone-id")
-                    metadata = phone_data.get("metadata") or {}
-                    gmpi_id = metadata.get("GMPI_ID") or metadata.get("gmpi_id") or ""
+                    phone_id = s.get("phone-id")
+                    status = s.get("status")
 
-                    if phone_number:
+                    if status == "unsubscribed" and phone_number:
                         unsubscribed.append({
-                            "GMPI_ID": gmpi_id,
+                            "PHONE_ID": phone_id,
                             "MEMBER_PHONE": phone_number.strip(),
-                            "STATUS": status,
-                            "PHONE_ID": phone_id
+                            "STATUS": status
                         })
 
                 # Pagination check
@@ -177,11 +173,11 @@ class BulkUnsubscribeFetcher:
 # ====================================================
 
 if __name__ == "__main__":
-    AUTH_URL = ""  # <-- OAuth endpoint
-    CLIENT_ID = ""
-    CLIENT_SECRET = ""
-    API_BASE_URL = ""  # <-- API base (e.g., https://api.smsmanager.com/v1)
-    PROGRAM_ID = ""  # <-- SMS Manager Program ID
+    AUTH_URL = ""        # <-- OAuth endpoint
+    CLIENT_ID = ""       # <-- Your Client ID
+    CLIENT_SECRET = ""   # <-- Your Client Secret
+    API_BASE_URL = ""    # <-- e.g., https://api.smsmanager.com/v1
+    PROGRAM_ID = ""      # <-- Your SMS Manager Program ID
     INPUT_CSV = "MEMBER_PHONE_LIST.csv"
     OUTPUT_CSV = f"Unsubscribed_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
@@ -199,10 +195,10 @@ if __name__ == "__main__":
         token_service=token_service
     )
 
-    # Step 1: Get all unsubscribed records
-    unsubscribed_records = fetcher.fetch_all_unsubscribed()
+    # Step 1: Fetch all unsubscribed records from API
+    unsubscribed_data = fetcher.fetch_all_unsubscribed()
 
-    if not unsubscribed_records:
+    if not unsubscribed_data:
         logging.info("No unsubscribed records found.")
         sys.exit(0)
 
@@ -211,11 +207,13 @@ if __name__ == "__main__":
     if "MEMBER_PHONE" not in df_input.columns:
         raise ValueError("Input CSV must have a column named 'MEMBER_PHONE'")
 
-    # Step 3: Match only those phones from the input list
-    unsubscribed_df = pd.DataFrame(unsubscribed_records)
-    merged_df = pd.merge(df_input, unsubscribed_df, on="MEMBER_PHONE", how="inner")
+    # Step 3: Merge with input list to include GMPI_ID
+    df_unsub_all = pd.DataFrame(unsubscribed_data)
+    df_final = pd.merge(df_input, df_unsub_all, how="inner", on="MEMBER_PHONE")
 
     # Step 4: Save results
-    merged_df.to_csv(OUTPUT_CSV, index=False)
-    logging.info(f"✅ Unsubscribe report generated with {len(merged_df)} records.")
+    df_final = df_final[["GMPI_ID", "MEMBER_PHONE", "STATUS", "PHONE_ID"]]
+    df_final.to_csv(OUTPUT_CSV, index=False, encoding="utf-8-sig")
+
+    logging.info(f"✅ Unsubscribe report generated with {len(df_final)} records.")
     logging.info(f"📄 Output saved to: {OUTPUT_CSV}")
