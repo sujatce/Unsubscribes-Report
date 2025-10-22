@@ -1,0 +1,10 @@
+2025-10-22 08:54:15 [INFO] 🚀 Starting Bulk Unsubscribe Report Generator...                                                                    
+
+2025-10-22 08:54:15 [INFO] [FETCH] 📄 Fetching page 1...
+2025-10-22 08:54:15 [INFO] [AUTH] Requesting new access token...
+2025-10-22 08:54:15 [INFO] [AUTH] Response Status: 200
+2025-10-22 08:54:15 [INFO] [AUTH] ✅ Access token received.
+2025-10-22 08:54:16 [INFO] [FETCH] Status Code: 200
+2025-10-22 08:54:16 [INFO] [FETCH] ✅ Total unsubscribed records retrieved: 18
+2025-10-22 08:54:16 [INFO] ✅ Unsubscribe report generated with 0 records.
+2025-10-22 08:54:16 [INFO] 📄 Output saved to: Unsubscribed_Report_20251022_085415.csv
