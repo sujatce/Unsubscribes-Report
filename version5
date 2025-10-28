@@ -172,6 +172,12 @@ class BulkUnsubscribeFetcher:
 
 if __name__ == "__main__":
 
+    AUTH_URL = ""  # Replace with actual auth endpoint
+    CLIENT_ID = ""
+    CLIENT_SECRET = ""
+    API_BASE_URL = ""
+    PROGRAM_ID = ""
+    TEMPLATE_ID = ""  # September short code  
     INPUT_CSV = "MEMBER_PHONE_LIST_10162025.csv"
     OUTPUT_CSV = f"Unsubscribed_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
