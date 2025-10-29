@@ -2,11 +2,11 @@
 
 2025-10-29 09:27:51 [INFO] [FETCH] 📄 Fetching page 1...
 2025-10-29 09:27:51 [INFO] [AUTH] Requesting new access token...
-2025-10-29 09:28:02 [WARNING] Retrying (Retry(total=4, connect=4, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CD7190A0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
-2025-10-29 09:28:17 [WARNING] Retrying (Retry(total=3, connect=3, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF4138F0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
-2025-10-29 09:28:36 [WARNING] Retrying (Retry(total=2, connect=2, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF4139B0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
-2025-10-29 09:29:03 [WARNING] Retrying (Retry(total=1, connect=1, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413B00>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
-2025-10-29 09:29:46 [WARNING] Retrying (Retry(total=0, connect=0, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413C50>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
+2025-10-29 09:28:02 [WARNING] Retrying (Retry(total=4, connect=4, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CD7190A0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
+2025-10-29 09:28:17 [WARNING] Retrying (Retry(total=3, connect=3, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF4138F0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
+2025-10-29 09:28:36 [WARNING] Retrying (Retry(total=2, connect=2, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF4139B0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
+2025-10-29 09:29:03 [WARNING] Retrying (Retry(total=1, connect=1, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413B00>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
+2025-10-29 09:29:46 [WARNING] Retrying (Retry(total=0, connect=0, read=5, redirect=None, status=None)) after connection broken by 'NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413C50>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)")': /oauth2/token
 Traceback (most recent call last):
   File "C:\Users\smarim18\AppData\Roaming\Python\Python312\site-packages\urllib3\connection.py", line 198, in _new_conn
     sock = connection.create_connection(
@@ -36,7 +36,7 @@ Traceback (most recent call last):
                        ^^^^^^^^^^^^^^^^
   File "C:\Users\smarim18\AppData\Roaming\Python\Python312\site-packages\urllib3\connection.py", line 205, in _new_conn
     raise NameResolutionError(self.host, self, e) from e
-urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)
+urllib3.exceptions.NameResolutionError: <urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)
 
 The above exception was the direct cause of the following exception:
 
@@ -60,7 +60,7 @@ Traceback (most recent call last):
   File "C:\Users\smarim18\AppData\Roaming\Python\Python312\site-packages\urllib3\util\retry.py", line 519, in increment
     raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='ocp.optum.com', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)"))
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='XXX.YYYYY.COM', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)"))
 
 During handling of the above exception, another exception occurred:
 
@@ -79,7 +79,7 @@ Traceback (most recent call last):
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\smarim18\AppData\Roaming\Python\Python312\site-packages\requests\adapters.py", line 700, in send
     raise ConnectionError(e, request=request)
-requests.exceptions.ConnectionError: HTTPSConnectionPool(host='ocp.optum.com', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)"))
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='XXX.YYYYY.COM', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)"))
 
 During handling of the above exception, another exception occurred:
 
@@ -94,4 +94,4 @@ Traceback (most recent call last):
     self.renew_token()
   File "C:\Users\smarim18\Documents\SMS_CAMPAIGN\UnSubscribes Report\Unsubscribers8.py", line 87, in renew_token
     raise Exception(f"[AUTH ERROR] Request failed: {e}")
-Exception: [AUTH ERROR] Request failed: HTTPSConnectionPool(host='ocp.optum.com', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'ocp.optum.com' ([Errno 11001] getaddrinfo failed)"))
+Exception: [AUTH ERROR] Request failed: HTTPSConnectionPool(host='XXX.YYYYY.COM', port=443): Max retries exceeded with url: /oauth2/token (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x00000270CF413DA0>: Failed to resolve 'XXX.YYYYY.COM' ([Errno 11001] getaddrinfo failed)"))
