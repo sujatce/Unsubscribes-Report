@@ -1,0 +1,27 @@
+2025-11-18 12:20:41 [INFO] 🚀 Starting Bulk Unsubscribe Report Generator...
+
+2025-11-18 12:20:41 [INFO] [FETCH] 📄 Fetching page 1...
+2025-11-18 12:20:41 [INFO] [AUTH] Requesting new access token...
+2025-11-18 12:20:42 [INFO] [AUTH] Response Status: 200
+2025-11-18 12:20:42 [INFO] [AUTH] ✅ Access token received.
+2025-11-18 12:20:42 [INFO] [FETCH] Status Code: 200
+2025-11-18 12:20:42 [INFO] [DEBUG] Sample unsubscribed entry:
+{
+  "id": 154961111,
+  "status": "unsubscribed",
+  "source": "Inbound Message",
+  "phone-id": 32833333,
+  "program-id": 798365,
+  "performed-at": "2025-10-28T19:37:50Z",
+  "created-at": "2025-10-28T19:35:14Z",
+  "updated-at": "2025-10-28T19:37:50Z",
+  "metadata": {}
+}
+2025-11-18 12:20:42 [INFO] [FETCH] ✅ Total unsubscribed records retrieved: 26
+2025-11-18 12:20:42 [INFO] ✅ Unsubscribe report generated with 24 records.
+2025-11-18 12:20:42 [INFO] 📄 Output saved to: Unsubscribed_Report_20251118_122041.csv
+2025-11-18 12:20:42 [INFO] 📊 24 out of 825 total records matched (unsubscribed).
+
+✅ Unsubscribe report generated with 24 records.
+📄 Output saved to: Unsubscribed_Report_20251118_122041.csv
+📊 24 out of 825 total records matched (unsubscribed).
